@@ -21,7 +21,8 @@ public class UserService {
     }
 
     public void unregisterUser(Long id) {
-        userRepository.deleteById(id);
+        UserEntity user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException(id));
+        userRepository.deleteById(user.getId());
     }
 
 

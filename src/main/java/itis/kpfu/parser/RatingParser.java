@@ -2,6 +2,7 @@ package itis.kpfu.parser;
 
 import itis.kpfu.model.RatingCard;
 import lombok.experimental.UtilityClass;
+import lombok.extern.log4j.Log4j2;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -11,16 +12,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 @UtilityClass
+@Log4j2
 public class RatingParser {
 
     public List<RatingCard> parseRating(String html) {
-
         Document doc = Jsoup.parse(html);
         List<RatingCard> list = new ArrayList<>();
         Elements cards = doc.select(".block-light.card_rating");
 
         for (Element card : cards) {
-            System.out.println("=== Новая заявка ===");
             List<String> fields = new ArrayList<>();
             Elements groups = card.select(".property_group");
             for (Element group : groups) {
@@ -48,6 +48,7 @@ public class RatingParser {
                     fields.get(10),
                     fields.get(11)
             ));
+            log.info("Карточка {} успешно распарсена", card.text());
         }
         return list;
     }
