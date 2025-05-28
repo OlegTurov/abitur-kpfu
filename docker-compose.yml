@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: db
+    environment:
+      POSTGRES_USER: OmeristIO
+      POSTGRES_PASSWORD: OmeristIO
+      POSTGRES_DB: kpfudb
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d kpfudb -U OmeristIO"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+
+  migrations:
+    container_name: kpfu_migrations
+    image: liquibase/liquibase:4.29
+    build: .
+    environment:
+      - JDBC_URL=jdbc:postgresql://db:5432/kpfudb
+      - POSTGRES_USERNAME=OmeristIO
+      - POSTGRES_PASSWORD=OmeristIO
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      - --changeLogFile=changelog.yml
+      - --url=jdbc:postgresql://db:5432/kpfudb
+      - --username=OmeristIO
+      - --password=OmeristIO
+      - --driver=org.postgresql.Driver
+      - update
+    volumes:
+      - ./migrations/changelog:/liquibase/changelog
+    working_dir: /liquibase/changelog

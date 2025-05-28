@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - changeSet:
+      id: createTables
+      author: Oleg
+      changes:
+        - sqlFile:
+            relativeToChangeFile: true
+            path: v.1.0/scripts/2025-04-03-create-tables.sql
+

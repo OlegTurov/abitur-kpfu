@@ -1,0 +1,20 @@
+spring:
+  config:
+    import: secrets.yml
+  datasource:
+    username: OmeristIO
+    password: OmeristIO
+    url: jdbc:postgresql://localhost:5432/kpfudb
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: HikariPool
+      connection-timeout: 30000
+      minimum-idle: 2
+      maximum-pool-size: 10
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      connection-test-query: SELECT 1
+      auto-commit: true
+logging:
+  level:
+    org.springframework.web.reactive.function.client.ExchangeFunctions: DEBUG
