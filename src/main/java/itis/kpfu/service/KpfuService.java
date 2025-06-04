@@ -33,7 +33,7 @@ public class KpfuService {
             formData.add("p_lan", request.getLan());
 
 
-            String html = client.baseUrl("https://abitur-2024.kpfu.ru")
+            return client.baseUrl("https://abitur-2024.kpfu.ru")
                     .defaultHeader(HttpHeaders.USER_AGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" +
                             " AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 YaBrowser/25.4.0.0 Safari/537.36")
                     .build()
@@ -63,7 +63,6 @@ public class KpfuService {
                     .doOnSuccess(success -> log.info("Ответ успешно получен для пользователя %s"
                             .formatted(request.getEmail())))
                     .block();
-            return html;
         } catch (Exception e) {
             log.error(e);
             throw new GettingCurrentPositionException(request.getEmail());
