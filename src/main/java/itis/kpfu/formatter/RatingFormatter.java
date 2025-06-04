@@ -5,46 +5,46 @@ import lombok.experimental.UtilityClass;
 
 import java.util.List;
 
-
-
 @UtilityClass
 public class RatingFormatter {
 
     public String formatRating(List<RatingCard> cards) {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < cards.size(); i++) {
-            RatingCard card = cards.get(i);
+        if (!cards.isEmpty()) {
+            for (int i = 0; i < cards.size(); i++) {
+                RatingCard card = cards.get(i);
 
-            sb.append("▛ ").append(card.name()).append(" ▜").append("\n");
-            sb.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━").append("\n");
+                sb.append("▛ ").append(card.name()).append(" ▜").append("\n");
+                sb.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━").append("\n");
 
-            appendField(sb, "Достижения", card.achievements());
-            appendField(sb, "Направление", card.direction());
-            appendField(sb, "Всего", card.total());
-            appendField(sb, "Форма", card.form());
-            appendField(sb, "Документ", card.document());
-            appendField(sb, "Финансирование", card.financing());
-            appendField(sb, "План", card.plan());
-            appendField(sb, "Основание", card.basis());
-            appendField(sb, "Остаток", card.remaining());
-            appendField(sb, "Приоритет", card.priority());
+                appendField(sb, card.achievements());
+                appendField(sb, card.direction());
+                appendField(sb, card.total());
+                appendField(sb, card.form());
+                appendField(sb, card.document());
+                appendField(sb, card.financing());
+                appendField(sb, card.plan());
+                appendField(sb, card.basis());
+                appendField(sb, card.remaining());
+                appendField(sb, card.priority());
 
-            sb.append("┣ Ссылка: ").append(card.url()).append("\n");
+                sb.append("┣ Ссылка: ").append(card.url()).append("\n");
 
-            if (i < cards.size() - 1) {
-                sb.append("\n▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄\n\n");
-            } else {
-                sb.append("▗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━▖");
+                if (i < cards.size() - 1) {
+                    sb.append("\n▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄\n\n");
+                } else {
+                    sb.append("▗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━▖");
+                }
             }
+        } else {
+            sb.append("Список заявлений пуст");
         }
         return sb.toString();
     }
 
-    private void appendField(StringBuilder sb, String fieldName, String value) {
+    private void appendField(StringBuilder sb, String value) {
         String formattedValue = formatLongText(value);
         sb.append("┃ ")
-                .append(fieldName)
-                .append(": ")
                 .append(formattedValue)
                 .append("\n");
     }

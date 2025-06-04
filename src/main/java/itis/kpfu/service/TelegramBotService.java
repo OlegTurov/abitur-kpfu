@@ -3,13 +3,11 @@ package itis.kpfu.service;
 import com.pengrad.telegrambot.request.SendMessage;
 import itis.kpfu.config.BotConfig;
 import itis.kpfu.encryptor.AESPasswordEncryptor;
-import itis.kpfu.exception.EncryptingException;
-import itis.kpfu.exception.GettingCurrentPositionException;
-import itis.kpfu.exception.UserNotFoundException;
+import itis.kpfu.exception.*;
 import itis.kpfu.formatter.RatingFormatter;
 import itis.kpfu.model.RatingCard;
 import itis.kpfu.model.UserEntity;
-import itis.kpfu.parser.CookieParser;
+import itis.kpfu.parser.KpfuParser;
 import itis.kpfu.parser.RatingParser;
 import itis.kpfu.request.UserRequest;
 import itis.kpfu.statehandler.ChatState;
@@ -87,6 +85,8 @@ public class TelegramBotService {
                     } catch (EncryptingException e) {
                         log.error("Не удалось зашифровать или дешифровать пароль пользователя {}", chatId);
                         throw new RuntimeException();
+                    } catch (UserExistsException e) {
+                        sendMessage(chatId, "Не удалось зарегистрироваться. Возможно вы уже зарегистрированы.");
                     }
                 }
             } else {
@@ -103,12 +103,15 @@ public class TelegramBotService {
                             break;
                         case "/check":
                             UserEntity user = userService.findUserById(chatId);
-                            UserRequest request = new UserRequest(user.getEmail(),
-                                    encryptor.decrypt(user.getPassword()));
+                            UserRequest request = new UserRequest(
+                                    chatId,
+                                    user.getEmail(),
+                                    encryptor.decrypt(user.getPassword())
+                            );
                             String html = kpfuService.getAuthorizeCookies(request);
                             String h = kpfuService.getPId(request, html);
-                            String uri = CookieParser.parsePId(h);
-                            String response = kpfuService.getRatingPage(request, html, uri);
+                            String uri = KpfuParser.parsePId(h);
+                            String response = kpfuService.getRatingPage(request, uri);
                             List<RatingCard> cardList = RatingParser.parseRating(response);
                             sendRating(chatId, cardList);
                             break;
@@ -123,9 +126,13 @@ public class TelegramBotService {
                                         "Не удалось отменить отслеживание. Возможно вы не зарегистрированы.");
                             }
                             break;
+                        case "/help":
+                            sendMessage(chatId, formatHelp());
+                        default:
+                            sendMessage(chatId, "Неизвестная команда. Введите /help для справки.");
                     }
 
-                } catch (GettingCurrentPositionException e) {
+                } catch (GettingCurrentPositionException | ParsingException e) {
                     sendMessage(chatId, "Не удалось получить позиции. Проверьте корректность данных.");
                 } catch (UserNotFoundException e) {
                     sendMessage(chatId, "Не удалось найти пользователя. Для регистрации введите /register");
@@ -144,6 +151,17 @@ public class TelegramBotService {
 
     private boolean validateEmail(String email) {
         return email.contains("@");
+    }
+
+    public String formatHelp() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("/start - приветственное сообщение.\n");
+        sb.append("/register - начать регистрацию.\n");
+        sb.append("/stop - удалить данные об абитуриенте.\n");
+        sb.append("/cancel - отменить регистрацию.\n");
+        sb.append("/check - вывести рейтинг.\n");
+        sb.append("/help - эта справка.");
+        return sb.toString();
     }
 
     private void sendRating(Long chatId, List<RatingCard> cardList) {

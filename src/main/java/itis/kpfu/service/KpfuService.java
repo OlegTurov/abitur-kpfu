@@ -1,6 +1,7 @@
 package itis.kpfu.service;
 
 import itis.kpfu.exception.GettingCurrentPositionException;
+import itis.kpfu.parser.KpfuParser;
 import itis.kpfu.request.UserRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -9,9 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
-import java.util.Collections;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +20,7 @@ import java.util.regex.Pattern;
 public class KpfuService {
 
     private final WebClient.Builder client;
+    private final Map<Long, MultiValueMap<String, String>> cookies = new HashMap<>();
 
     public String getAuthorizeCookies(UserRequest request) {
         try {
@@ -60,8 +62,6 @@ public class KpfuService {
                     .bodyToMono(String.class)
                     .doOnSuccess(success -> log.info("Ответ успешно получен для пользователя %s"
                             .formatted(request.getEmail())))
-                    .doOnError(error -> log.error("Не удалось получить ответ для пользователя %s"
-                            .formatted(request.getEmail())))
                     .block();
             return html;
         } catch (Exception e) {
@@ -72,13 +72,15 @@ public class KpfuService {
 
     public String getPId(UserRequest request, String authorizePage) {
         try {
+            MultiValueMap<String, String> cookie = KpfuParser.prepareCookies(authorizePage);
+            cookies.put(request.getId(), cookie);
             return client.baseUrl("https://abitur-2024.kpfu.ru")
                     .defaultHeader(HttpHeaders.USER_AGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" +
                             " AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 YaBrowser/25.4.0.0 Safari/537.36")
                     .build()
                     .get()
-                    .uri(prepareGettingPIdUri(authorizePage))
-                    .cookies(cookies -> cookies.addAll(prepareCookies(authorizePage)))
+                    .uri(KpfuParser.prepareGettingPIdUri(authorizePage))
+                    .cookies(cookies -> cookies.addAll(cookie))
                     .header("accept",
                             "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;" +
                                     "q=0.8,application/signed-exchange;v=b3;q=0.7")
@@ -101,8 +103,6 @@ public class KpfuService {
                     .bodyToMono(String.class)
                     .doOnSuccess(success -> log.info("Рейтинг успешно получен для пользователя %s"
                             .formatted(request.getEmail())))
-                    .doOnError(error -> log.error("Не удалось получить рейтинг для пользователя %s"
-                            .formatted(request.getEmail())))
                     .block();
         } catch (Exception e) {
             log.error(e);
@@ -110,16 +110,16 @@ public class KpfuService {
         }
     }
 
-    public String getRatingPage(UserRequest request, String authorizePage, String uri) {
+    public String getRatingPage(UserRequest request, String uri) {
         try {
-            MultiValueMap<String, String> cookiesMap = prepareCookies(authorizePage);
-            String html = client.baseUrl("https://abitur-2024.kpfu.ru")
+            MultiValueMap<String, String> cookiesMap = cookies.get(request.getId());
+            return client.baseUrl("https://abitur-2024.kpfu.ru")
                     .defaultHeader(HttpHeaders.USER_AGENT, "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" +
                             " AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 YaBrowser/25.4.0.0 Safari/537.36")
                     .build()
                     .get()
                     .uri(uri)
-                    .cookies(cookies -> cookies.addAll(cookiesMap))
+                    .cookies(cookies1 -> cookies1.addAll(cookiesMap))
                     .header("accept",
                             "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;" +
                                     "q=0.8,application/signed-exchange;v=b3;q=0.7")
@@ -142,38 +142,11 @@ public class KpfuService {
                     .bodyToMono(String.class)
                     .doOnSuccess(success -> log.info("Рейтинг успешно получен для пользователя %s"
                             .formatted(request.getEmail())))
-                    .doOnError(error -> log.error("Не удалось получить рейтинг для пользователя %s"
-                            .formatted(request.getEmail())))
                     .block();
-            return html;
         } catch (Exception e) {
             log.error(e);
             throw new GettingCurrentPositionException(request.getEmail());
         }
     }
 
-    private String prepareGettingPIdUri(String html) {
-        Pattern pattern = Pattern.compile("(?:window|document)\\.location\\.href\\s*=\\s*[\"'][^\"']*\\?([^\"']+)[\"']");
-        Matcher urlMatcher = pattern.matcher(html);
-        String uri = "";
-        while (urlMatcher.find()) {
-            uri = urlMatcher.group(1);
-        }
-        return "/entrant/abiturient_cabinet.entrant_info?%s".formatted(uri);
-    }
-
-    private LinkedMultiValueMap<String, String> prepareCookies(String html) {
-
-        Pattern cookiePattern = Pattern.compile("setCookie\\s*\\(\\s*'([^']+)'\\s*,\\s*'([^']+)'");
-        Matcher cookieMatcher = cookiePattern.matcher(html);
-
-        LinkedMultiValueMap<String, String> cookies = new LinkedMultiValueMap<>();
-        while (cookieMatcher.find()) {
-            String name = cookieMatcher.group(1);
-            String value = cookieMatcher.group(2);
-            cookies.put(name, Collections.singletonList(value));
-        }
-
-        return cookies;
-    }
 }
